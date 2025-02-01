@@ -1,4 +1,4 @@
-from uvtemp._version import __version__
+from hyperfastuv._version import __version__
 
 
 def get_version() -> str:

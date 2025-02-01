@@ -165,11 +165,6 @@ open_link:
   type: bool
   help: Do you want to open the project homepage link when you run CLI commands?
 
-package_manager:
-  default: "poetry"
-  type: str
-  help: Which package manager to use for the project.
-
 python_version:
   default: "3.11"
   type: str
@@ -179,11 +174,6 @@ uv_version:
   default: "latest"
   type: str
   help: Which version of uv to use. See https://docs.astral.sh/uv/ for details.
-
-use_uv:
-  default: true
-  type: bool
-  help: Whether to set up the project using the uv framework.
 
 code_template_source:
   default: ""

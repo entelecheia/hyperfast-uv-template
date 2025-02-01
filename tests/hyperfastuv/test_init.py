@@ -1,4 +1,4 @@
-from uvtemp import get_version
+from hyperfastuv import get_version
 
 
 def test_get_version() -> None:
