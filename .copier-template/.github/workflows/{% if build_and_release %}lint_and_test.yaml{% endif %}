@@ -29,38 +29,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      # install poetry
-      - name: Install poetry
-        run: pipx install poetry>=1.3.2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
-      # set up python
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: "poetry"
+          python-version-file: ".python-version"
 
-      # initialize
-      - name: Initialize
-        run: make initialize
-
-      # install dependencies
-      - name: Install dependencies for linters
-        run: poe install-dev
-
-      # run linters
-      - name: Run linters
+      - name: Run checks
         run: |
           set -o pipefail
-          poe lint
+          make check
 
-      # run unit tests
       - name: Run unit-tests
         run: |
           set -o pipefail
-          poe tests-cov-fail
+          make test
 
-      # add content to GitHub summary
       - name: Pytest coverage GitHub summary
         run: |
           set -o pipefail
