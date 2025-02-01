@@ -1,0 +1,191 @@
+_subdirectory: .copier-template
+
+# Configure jinja2 defaults to make syntax highlighters lives easier
+_templates_suffix: .jinja
+_envops:
+  block_end_string: "%}"
+  block_start_string: "{%"
+  comment_end_string: "#}"
+  comment_start_string: "{#"
+  keep_trailing_newline: true
+  variable_end_string: "}}"
+  variable_start_string: "{{"
+
+_answers_file: .copier-config.yaml
+
+_tasks:
+  # Strings get executed under system's default shell
+  - "[ -d .git ] || git init"
+  - "{% if github_repo_name %}git add remote origin https://github.com/{{ github_username }}/{{ github_repo_name }}.git 2>/dev/null || echo 'origin already exists'{% else %}echo 'No GitHub repository name provided. Skipping git remote add.'{% endif %}"
+  # if code_template_source and code_template_source != 'None' is not empty, apply the code template
+  - "{% if code_template_source and code_template_source != 'None' %}copier copy --trust --data 'project_name={{project_name}}' --data 'package_name={{package_name}}' --data 'open_link={{open_link}}' --answers-file {{ code_template_answers_file }} {%- if project_name.endswith('-template') %} --vcs-ref=HEAD{% endif %} {{ code_template_source }} .{% else %}echo 'No code template source provided. Skipping copier.'{% endif %}"
+
+# questions
+project_name:
+  type: str
+  help: What is your project name? (it will be used in `pip install project_name`)
+  validator: >-
+    {% if not (project_name | regex_search('^[a-zA-Z][a-zA-Z0-9\-]+$')) %}
+    project_name must start with a letter, followed one or more letters, digits or dashes in lowercase only
+    {% endif %}
+
+friendly_name:
+  default: "{{ project_name }}"
+  type: str
+  help: What is your project friendly name? (it will be used for the title of the documentation)
+
+project_short_description:
+  type: str
+  help: What is your project short description?
+
+project_description:
+  type: str
+  help: What is your project description?
+
+project_license:
+  type: str
+  choices:
+    - MIT
+    - CC-BY-4.0
+    - Apache-2.0
+    - GPLv3
+    - None
+
+author:
+  type: str
+  help: What is your name?
+  validator: >-
+    {% if not (author | regex_search('^[a-zA-Z][a-zA-Z ]+$')) %}
+    author must start with a letter, followed one or more letters or spaces
+    {% endif %}
+
+github_username:
+  type: str
+  help: What is your GitHub username?
+  validator: >-
+    {% if not (github_username | regex_search('^[a-z0-9][a-z0-9\-]+$')) %}
+    github_username must start with a letter or digit, followed one or more letters, digits or dashes in lowercase only
+    {% endif %}
+
+email:
+  default: "{{ github_username }}@"
+  type: str
+  help: What is your email?
+  validator: >-
+    {% if not (email | regex_search('^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$')) %}
+    email must be a valid email address
+    {% endif %}
+
+github_repo_name:
+  default: "{{ project_name }}"
+  type: str
+  help: What is your GitHub repository name?
+
+main_branch:
+  default: main
+  type: str
+  help: What is your main branch name?
+
+build_and_release:
+  default: true
+  type: bool
+  help: Do you want to build and release the package?
+
+package_name:
+  default: "{{ project_name | replace('-', '_') }}"
+  type: str
+  help: What is your Python module name? (it will be used in `import package_name`)
+  validator: >-
+    {% if not (package_name | regex_search('^[a-z][a-z0-9_]+$')) %}
+    package_name must start with a letter, followed one or more letters, digits or underscores in lowercase only
+    {% endif %}
+
+package_scripts:
+  default: "[{{ package_name }} = '{{ package_name }}.__cli__:main']"
+  type: yaml
+  help: What are the scripts of your Python package? (it will be used as CLI entry points)
+
+upload_to_release:
+  default: "{{ build_and_release | lower }}"
+  type: bool
+  help: Do you want to upload the assets built to the GitHub release?
+
+upload_to_repository:
+  default: "{{ build_and_release | lower }}"
+  type: bool
+  help: Do you want to upload the package to the PyPI repository?
+
+documentaion_tool:
+  default: jupyter-book
+  type: str
+  choices:
+    - jupyter-book
+    - mkdocs
+    - none
+  help: What documentation tool do you want to use?
+
+copyright_year:
+  default: "{{ '%Y' | strftime }}"
+  type: int
+  help: What is the copyright year?
+
+documentation_url:
+  default: "https://{{ github_username }}.github.io/{{ github_repo_name }}"
+  type: str
+  help: What is your documentation URL?
+
+favicon_path:
+  type: str
+  help: What is the path to your favicon? (leave empty if you don't have one. e.g. favicon.png or https://example.com/favicon.png)
+
+logo_path:
+  type: str
+  help: What is the path to your logo? (leave empty if you don't have one. e.g. logo.png or https://example.com/logo.png)
+
+use_launch_buttons:
+  default: false
+  type: bool
+  help: Do you want to use launch buttons in your documentation? (it is only available for Jupyter Book)
+
+google_analytics_id:
+  type: str
+  help: What is your Google Analytics ID? (leave empty if you don't have one. e.g. G-XXXXXXXXXX)
+
+codecov_graph_token:
+  default: "[REPLACE_ME]"
+  type: str
+  help: What is your Codecov graph token? (leave empty if you don't have one. e.g. XXXXXXXXXX) You can find it in https://app.codecov.io/gh/{{ github_username }}/{{ github_repo_name }}/settings
+
+use_source_code_skeleton:
+  default: "{{ build_and_release | lower }}"
+  type: bool
+  help: Do you want to use the source code skeleton? (it will create `src` and `tests` directories)
+
+open_link:
+  type: bool
+  help: Do you want to open the project homepage link when you run CLI commands?
+
+package_manager:
+  default: "poetry"
+  type: str
+  help: Which package manager to use for the project.
+
+uv_version:
+  default: "latest"
+  type: str
+  help: Which version of uv to use. See https://docs.astral.sh/uv/ for details.
+
+use_uv:
+  default: true
+  type: bool
+  help: Whether to set up the project using the uv framework.
+
+code_template_source:
+  default: ""
+  type: str
+  help: What is the URL of the code template to apply to the project? (leave empty if you don't want to apply a code template. e.g. gh:entelecheia/hyfi-template)
+
+code_template_answers_file:
+  default: .copier-hyfi-config.yaml
+  type: str
+  help: What is the path to the answers file of the code template? (e.g. .copier-hyfi-config.yaml)
