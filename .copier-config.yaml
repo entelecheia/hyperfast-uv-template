@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; do NOT edit manually
-_commit: 698883a
+_commit: f58b8dd
 _src_path: .
 author: Young Joon Lee
 build_and_release: true
@@ -41,3 +41,4 @@ upload_to_repository: true
 use_launch_buttons: true
 use_source_code_skeleton: true
 uv_version: latest
+
