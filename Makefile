@@ -46,9 +46,46 @@ docs-test: ## Test if documentation can be built without warnings or errors
 docs: ## Build and serve the documentation
 	@uv run mkdocs serve
 
+.PHONY: install-pipx
+install-pipx: ## Install pipx (pre-requisite for external tools)
+	@echo "🚀 Installing pipx"
+	@command -v pipx &> /dev/null || pip install --user pipx || true
+
+.PHONY: install-copier
+install-copier: install-pipx ## Install copier (pre-requisite for init-project)
+	@echo "🚀 Installing copier"
+	@command -v copier &> /dev/null || pipx install copier || true
+
+.PHONY: init-project
+init-project: initialize ## Initialize the project (Warning: do this only once!)
+	@echo "🚀 Initializing project from template"
+	@copier copy --trust --answers-file .copier-config.yaml --vcs-ref=HEAD gh:entelecheia/hyperfast-uv-template .
+
+.PHONY: reinit-project
+reinit-project: install-copier ## Reinitialize the project (Warning: this may overwrite existing files!)
+	@echo "🚀 Reinitializing project from template"
+	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy "$${args[@]}" --answers-file .copier-config.yaml --trust --vcs-ref=HEAD . .'
+
+.PHONY: reinit-project-force
+reinit-project-force: install-copier ## Initialize the project ignoring existing files (Warning: this will overwrite existing files!)
+	@echo "🚀 Force reinitializing project from template"
+	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy "$${args[@]}" --answers-file .copier-config.yaml --trust --force --vcs-ref=HEAD . .'
+
+.PHONY: test-init-project
+test-init-project: install-copier ## Test initializing the project to a temporary directory
+	@echo "🚀 Testing project initialization"
+	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy "$${args[@]}" --answers-file .copier-config.yaml --trust --vcs-ref=HEAD . tmp'
+	@rm -rf tmp/.git
+
+.PHONY: test-init-project-force
+test-init-project-force: install-copier ## Test initializing the project to a temporary directory forcing overwrite
+	@echo "🚀 Testing project initialization with force"
+	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy "$${args[@]}" --answers-file .copier-config.yaml --trust --force --vcs-ref=HEAD . tmp'
+	@rm -rf tmp/.git
+
 .PHONY: help
 help:
 	@uv run python -c "import re; \
-	[[print(f'\033[36m{m[0]:<20}\033[0m {m[1]}') for m in re.findall(r'^([a-zA-Z_-]+):.*?## (.*)$$', open(makefile).read(), re.M)] for makefile in ('$(MAKEFILE_LIST)').strip().split()]"
+	[[print(f'\033[36m{m[0]:<25}\033[0m {m[1]}') for m in re.findall(r'^([a-zA-Z_-]+):.*?## (.*)$$', open(makefile).read(), re.M)] for makefile in ('$(MAKEFILE_LIST)').strip().split()]"
 
 .DEFAULT_GOAL := help
