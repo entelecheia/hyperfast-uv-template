@@ -82,7 +82,6 @@ test-init-project-force: install-copier ## Test initializing the project to a te
 	@echo "🚀 Testing project initialization with force"
 	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy "$${args[@]}" --answers-file .copier-config.yaml --trust --force --vcs-ref=HEAD . tmp'
 	@rm -rf tmp/.git
-
 .PHONY: help
 help:
 	@uv run python -c "import re; \

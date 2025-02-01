@@ -5,7 +5,7 @@
 [![release-date-image]][release-url]
 [![license-image]][license-url]
 [![codecov][codecov-image]][codecov-url]
-[![jupyter-book-image]][docs-url]
+
 
 <!-- Links: -->
 [codecov-image]: https://codecov.io/gh/entelecheia/hyperfast-uv-template/branch/main/graph/badge.svg?token=29NXUNQUBU
