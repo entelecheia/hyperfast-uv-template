@@ -36,6 +36,10 @@ dev-dependencies = [
     "ruff>=0.6.9",
     "mkdocs>=1.4.2",
     "mkdocs-material>=8.5.10",
+    "mkdocs-material-extensions>=1.1",
+    "markdown-include>=0.8.0",
+    "mkdocs-click>=0.6.0",
+    "pymdown-extensions>=9.9.1",
     "mkdocstrings[python]>=0.26.1",
     "python-semantic-release>=9.0.0",
 ]
@@ -69,16 +73,43 @@ extend-exclude = '''
 
 [tool.isort]
 profile = "black"
-skip = ['_version.py', 'node_modules', '_build', 'docs', 'tests', 'venv', '.copier-template', '.refs']
+skip = [
+    '_version.py',
+    'node_modules',
+    '_build',
+    'docs',
+    'tests',
+    'venv',
+    '.copier-template',
+    '.refs',
+]
 
 [tool.flake8]
 ignore = ['F401', 'E501', 'W503']
-exclude = ["node_modules", "_build", "docs", "tests", "venv", ".copier-template", ".refs"]
+exclude = [
+    "node_modules",
+    "_build",
+    "docs",
+    "tests",
+    "venv",
+    ".copier-template",
+    ".refs",
+]
 per-file-ignores = ['__init__.py:F401', '_version.py:W292']
 
 [tool.mypy]
 namespace_packages = true
-exclude = ["node_modules", "build", "_build", "dist", "docs", "tests", "venv", ".copier-template", ".refs"]
+exclude = [
+    "node_modules",
+    "build",
+    "_build",
+    "dist",
+    "docs",
+    "tests",
+    "venv",
+    ".copier-template",
+    ".refs",
+]
 # 3rd party import
 ignore_missing_imports = true
 # dynamic typing
@@ -203,16 +234,16 @@ mode = "update"
 # Commit parser options
 [tool.semantic_release.commit_parser_options]
 allowed_tags = [
-  "build",
-  "chore",
-  "ci",
-  "docs",
-  "feat",
-  "fix",
-  "perf",
-  "style",
-  "refactor",
-  "test",
+    "build",
+    "chore",
+    "ci",
+    "docs",
+    "feat",
+    "fix",
+    "perf",
+    "style",
+    "refactor",
+    "test",
 ]
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
