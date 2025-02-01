@@ -1,0 +1,56 @@
+# Home
+
+[![pypi-image]][pypi-url]
+[![version-image]][release-url]
+[![release-date-image]][release-url]
+[![license-image]][license-url]
+[![jupyter-book-image]][docs-url]
+[![codecov][codecov-image]][codecov-url]
+
+<!-- Links: -->
+[hyperfast python template]: https://github.com/entelecheia/hyperfast-uv-template
+
+[codecov-image]: https://codecov.io/gh/{{ github_username }}/{{ github_repo_name }}/branch/{{ main_branch }}/graph/badge.svg?token={{ codecov_graph_token }}
+[codecov-url]: https://codecov.io/gh/{{ github_username }}/{{ github_repo_name }}
+[pypi-image]: https://img.shields.io/pypi/v/{{ project_name }}
+[license-image]: https://img.shields.io/github/license/{{ github_username }}/{{ github_repo_name }}
+[license-url]: https://github.com/{{ github_username }}/{{ github_repo_name }}/blob/{{ main_branch }}/LICENSE
+[version-image]: https://img.shields.io/github/v/release/{{ github_username }}/{{ github_repo_name }}?sort=semver
+[release-date-image]: https://img.shields.io/github/release-date/{{ github_username }}/{{ github_repo_name }}
+[release-url]: https://github.com/{{ github_username }}/{{ github_repo_name }}/releases
+[jupyter-book-image]: https://jupyterbook.org/en/stable/_images/badge.svg
+
+[repo-url]: https://github.com/{{ github_username }}/{{ github_repo_name }}
+[pypi-url]: https://pypi.org/project/{{ project_name }}
+[docs-url]: {{ documentation_url }}
+[changelog]: https://github.com/{{ github_username }}/{{ github_repo_name }}/blob/{{ main_branch }}/CHANGELOG.md
+[contributing guidelines]: https://github.com/{{ github_username }}/{{ github_repo_name }}/blob/{{ main_branch }}/CONTRIBUTING.md
+<!-- Links: -->
+
+{{ project_short_description }}
+
+- Documentation: [{{ documentation_url }}][docs-url]
+- GitHub: [https://github.com/{{ github_username }}/{{ github_repo_name }}][repo-url]
+- PyPI: [https://pypi.org/project/{{ project_name }}][pypi-url]
+
+{{ project_description }}
+
+## Changelog
+
+See the [CHANGELOG] for more information.
+
+## Contributing
+
+Contributions are welcome! Please see the [contributing guidelines] for more information.
+
+{% if project_lincense != 'None' -%}
+## License
+
+This project is released under the [{{ project_license }} License][license-url].
+
+{% endif -%}
+
+## Table of Contents
+
+```{tableofcontents}
+```

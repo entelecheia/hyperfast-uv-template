@@ -1,0 +1,98 @@
+site_name: "{{ friendly_name }}"
+site_url: {{ documentation_url }}
+site_author: {{ author }} <{{ email }}>
+site_description: >-
+  {{ project_short_description }}
+# Repository
+repo_name: {{ github_username }}/{{ github_repo_name }}
+repo_url: https://github.com/{{ github_username }}/{{ github_repo_name }}
+edit_uri: edit/{{ main_branch }}/docs/
+
+# Copyright
+copyright: Copyright &copy; {{ copyright_year }} {{ author }}
+
+# Configuration
+theme:
+  name: material
+  palette:
+    scheme: slate
+  features:
+    - navigation.expand
+    - navigation.indexes
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    # - content.tabs.link
+    - content.tooltips
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+  {% if favicon_path %}favicon: {{ favicon_path }} {% endif -%} # favicon: Path to the favicon image
+  {% if logo_path %}logo: {{ logo_path }} {% endif -%} # logo: Path to the book logo
+
+# Extensions
+markdown_extensions:
+  - markdown_include.include:
+      base_path: .
+  - pymdownx.arithmatex:
+      generic: true
+  - admonition
+  - pymdownx.caret
+  - pymdownx.details
+  # - pymdownx.emoji:
+  #     emoji_generator: "!!python/name:materialx.emoji.to_svg"
+  #     emoji_index: "!!python/name:materialx.emoji.twemoji"
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.snippets
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: "!!python/name:pymdownx.superfences.fence_code_format"
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+{%- if build_and_release %}
+  - mkdocs-click
+{%- endif %}
+  - codehilite
+
+# Plugins
+plugins:
+  - search
+{%- if build_and_release %}
+  - mkdocstrings:
+      handlers:
+        # See: https://mkdocstrings.github.io/python/usage/
+        python:
+          options:
+            docstring_style: google
+{%- endif %}
+
+# Customization
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+{% if google_analytics_id -%}
+extra:
+  analytics:
+    provider: google
+    property: {{ google_analytics_id }}
+{% endif -%}
+
+# Page tree
+# nav:
+#  - Home: index.md
+#  - Usage: usage.md
