@@ -170,6 +170,11 @@ package_manager:
   type: str
   help: Which package manager to use for the project.
 
+python_version:
+  default: "3.11"
+  type: str
+  help: Which Python version to use for the project. (e.g. 3.8, 3.9, 3.10, 3.11)
+
 uv_version:
   default: "latest"
   type: str
