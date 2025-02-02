@@ -39,6 +39,11 @@ jobs:
         with:
           python-version-file: ".python-version"
 
+      - name: Install dependencies
+        run: |
+          set -o pipefail
+          make install
+
       - name: Run checks
         run: |
           set -o pipefail
