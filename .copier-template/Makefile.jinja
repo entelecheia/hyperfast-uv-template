@@ -1,5 +1,5 @@
 .PHONY: install
-install: ## Install the virtual environment and install the pre-commit hooks
+install: install-uv ## Install the virtual environment and install the pre-commit hooks
 	@echo "🚀 Creating virtual environment using uv"
 	@uv sync
 	@uv run pre-commit install
@@ -45,6 +45,11 @@ docs-test: ## Test if documentation can be built without warnings or errors
 .PHONY: docs
 docs: ## Build and serve the documentation
 	@uv run mkdocs serve
+
+.PHONY: install-uv
+install-uv: ## Install uv (pre-requisite for initialize)
+	@echo "🚀 Installing uv"
+	@command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh || true
 
 .PHONY: install-pipx
 install-pipx: ## Install pipx (pre-requisite for external tools)
