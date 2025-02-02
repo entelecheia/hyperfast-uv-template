@@ -24,7 +24,7 @@ from hyperfastuv._version import __version__
 @click.version_option(__version__)
 @click.option("--count", "-c", default=1, help="Number of greetings.")
 @click.option("--name", "-n", prompt="Your name", help="The person to greet.")
-def main(count: int, name: str) -> None:
+def main(count, name):
     """Run the main CLI function.
 
     This function serves as the entry point for the command-line interface.
@@ -41,6 +41,7 @@ def main(count: int, name: str) -> None:
         Hello, Alice!
         This is hyperfastuv version 0.1.0.
     """
+    # Print a message to the user.
     for _ in range(count):
         click.echo(f"Hello, {name}!")
         click.echo(f"This is hyperfastuv version {__version__}.")
