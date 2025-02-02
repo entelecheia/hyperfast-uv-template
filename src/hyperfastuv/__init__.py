@@ -1,8 +1,5 @@
 """Hyperfast UV Template Package.
 
-This package provides a template for creating Python packages using UV as the package manager.
-It includes basic functionality for version management and CLI interaction.
-
 Example:
     >>> from hyperfastuv import get_version
     >>> version = get_version()
