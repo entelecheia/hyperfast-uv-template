@@ -1,6 +1,6 @@
 [project]
 name = "hyperfast-uv-template"
-version = "0.4.0"
+version = "0.4.1"
 description = "Streamlining Python Project Development with a Comprehensive Toolset for Quality, Efficiency, and Maintainability"
 authors = [{ name = "Young Joon Lee", email = "entelecheia@hotmail.com" }]
 license = "MIT"
