@@ -2,6 +2,6 @@ mkdocs
 markdown-include
 mkdocs-material
 mkdocs-material-extensions>=1.1
-pymdown-extensions>=9.9.1
+pymdown-extensions>=11.0.1
 mkdocstrings[python]
 mkdocs-click
