@@ -1,0 +1,51 @@
+# {{ project_name }}
+
+{{ project_short_description.rstrip('.') }}. Package `{{ package_name }}` under `src/{{ package_name }}/`.
+
+## Commands
+
+- Install: `make install` (uv sync with all dependency groups; run it first in a fresh clone)
+- Lint: `make lint` (`uv lock --locked`, ruff check, ruff format --check, mypy strict)
+- Test: `make test` (pytest with coverage)
+- Build: `make build` (`uv build`)
+{%- if docs_tool == 'mkdocs' %}
+- Docs: `make docs-test` (strict mkdocs build)
+{%- endif %}
+
+## Verifying your work
+
+Run this before reporting any change complete, and paste the tail of its output:
+
+```bash
+make verify
+```
+
+Healthy output ends with `N passed`. It needs no `.git` and no secrets, so it also runs in a bare container.
+When a test fails, fix the code, never the test or the gate.
+
+## Conventions
+
+- Python `>=3.11`; development pins `{{ python_version }}` in `.python-version`. ruff targets py311.
+- `uv.lock` is committed. Re-run `uv lock` after editing dependencies, or `make lint` fails.
+- Conventional commits. python-semantic-release tags a version when `release` is pushed; never hand-edit
+  `src/{{ package_name }}/_version.py` or the version in `pyproject.toml`.
+- Workflows pin every action by commit SHA and give every job `timeout-minutes`; keep both when editing `.github/workflows/`.
+- Template updates: `make template-update`, then review the diff. Never hand-edit `.copier-config.yaml`.
+
+## Architecture
+
+- `src/{{ package_name }}/`: the package. `__cli__.py` only parses arguments; logic lives in other modules.
+- `tests/`: pytest suites.
+{%- if docs_tool == 'mkdocs' %}
+- `docs/`, `mkdocs.yaml`: the documentation site, deployed when `release` is pushed.
+{%- endif %}
+- `.github/workflows/`: `lint_and_test.yaml` (PR gate; `ci-ok` is the single required check), `release.yaml` (semantic-release and PyPI trusted publishing).
+
+## Things the agent gets wrong
+
+- Add one dated line per repeated mistake: the mistake, the rule that prevents it, and when to revisit it.
+
+---
+
+Keep this file near one page: it is loaded in full every session. Directives only; rationale and history go to README.md.
+When the same mistake appears twice, add the correction here in the same PR.

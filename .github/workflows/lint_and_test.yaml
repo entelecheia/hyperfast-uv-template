@@ -1,71 +1,115 @@
 ---
 name: lint & test
 
+# The PR gate. Pushes to the main branch are not rebuilt: the release workflow
+# reuses a successful run for its commit, or calls this workflow itself.
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to validate (the release workflow passes refs/tags/<tag> on a republish)"
+        type: string
+        required: false
+        default: ""
   workflow_dispatch:
-  push:
-    branches:
-      - "main"
-    paths:
-      - "src/**"
-      - "tests/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-and-test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_LOCKED: "1"
 
 jobs:
-  build:
-    # Name the Job
-    name: test-code-base
-    # Set the agent to run on
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        python-version: [3.9]
-
+  # Docs-only pull requests skip the matrix but still report ci-ok.
+  decision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      run_full: ${{ steps.dedupe.outputs.run_full }}
     steps:
-      # Checkout the code base #
-      - name: Checkout Code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
+      - id: dedupe
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DOCS_ONLY_RE: '^([^/]*\.md|docs/.*|mkdocs\.yaml|\.github/workflows/docs\.yaml)$'
+        run: |
+          set -uo pipefail
+          run_full=true
+          reason="this event requires full validation"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # Both sides of a rename count; any API failure means a full run.
+            files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" \
+              --jq '.[] | .filename, (.previous_filename // empty)') || files=""
+            other=$(printf '%s\n' "$files" | grep -Ev "$DOCS_ONLY_RE" || true)
+            # The files API stops at 3000 entries; a PR that large always validates.
+            changed=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .changed_files || echo 3000)
+            if [ -n "$files" ] && [ -z "$other" ] && [ "${changed:-3000}" -lt 3000 ]; then
+              run_full=false
+              reason="docs-only change"
+            fi
+          fi
+          echo "run_full=$run_full" >> "$GITHUB_OUTPUT"
+          echo "decision: $reason" | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+  quality:
+    needs: decision
+    if: needs.decision.outputs.run_full == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref }}
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.2" # pin the uv CLI; keep in step with build_command in pyproject.toml
           enable-cache: true
+          cache-python: true
+      - run: make lint
 
-      - name: "Set up Python"
-        uses: actions/setup-python@v6
+  test:
+    needs: decision
+    if: needs.decision.outputs.run_full == 'true'
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version-file: ".python-version"
-
-      - name: Install dependencies
-        run: |
-          set -o pipefail
-          make install
-
-      - name: Run checks
-        run: |
-          set -o pipefail
-          make check
-
-      - name: Run unit-tests
-        run: |
-          set -o pipefail
-          make test
-
-      - name: Pytest coverage GitHub summary
-        run: |
-          set -o pipefail
-          echo '# Coverage report' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat tests/pytest-coverage.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo '\n\n\n'
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v7
+          ref: ${{ inputs.ref }}
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} # required
-          fail_ci_if_error: false # optional (default = false)
-          verbose: true # optional (default = false)
+          version: "0.13.2"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-python: true
+      - run: uv sync --no-default-groups --group test
+      - run: uv run --no-sync pytest --cov --cov-report=term-missing
+      - name: Build sdist and wheel
+        if: matrix.python-version == '3.15'
+        run: uv build
+
+  # Single required check that is green whether the matrix ran or was skipped.
+  ci-ok:
+    if: always()
+    needs: [decision, quality, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "$RESULTS"
+          echo "$RESULTS" | grep -Eq '"(failure|cancelled)"' && exit 1 || exit 0

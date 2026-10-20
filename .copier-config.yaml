@@ -2,12 +2,8 @@
 _commit: v0.4.0-7-g31e4a3d
 _src_path: .
 author: Young Joon Lee
-build_and_release: true
-code_template_answers_file: .copier-code-config.yaml
-code_template_source: ''
-codecov_graph_token: 29NXUNQUBU
 copyright_year: 2023
-documentaion_tool: mkdocs
+docs_tool: mkdocs
 documentation_url: https://hyperfast-uv.entelecheia.ai
 email: entelecheia@hotmail.com
 favicon_path: https://assets.entelecheia.ai/favicon.png
@@ -17,7 +13,6 @@ github_username: entelecheia
 google_analytics_id: G-0K77490FJT
 logo_path: https://assets.entelecheia.ai/logo.png
 main_branch: main
-open_link: true
 package_name: hyperfastuv
 package_scripts:
 - hyperfastuv = 'hyperfastuv.__cli__:main'
@@ -35,10 +30,6 @@ project_license: MIT
 project_name: hyperfast-uv-template
 project_short_description: Streamlining Python Project Development with a Comprehensive
     Toolset for Quality, Efficiency, and Maintainability
-python_version: '3.11'
-upload_to_release: true
-upload_to_repository: true
-use_launch_buttons: true
+python_version: '3.14'
 use_source_code_skeleton: true
-uv_version: latest
 

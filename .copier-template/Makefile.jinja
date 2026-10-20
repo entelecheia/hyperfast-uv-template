@@ -1,103 +1,44 @@
-.PHONY: install
-install: install-uv ## Install the virtual environment and install the pre-commit hooks
-	@echo "🚀 Creating virtual environment using uv"
-	@uv sync
-	@uv run pre-commit install
+SHELL := bash
+.DEFAULT_GOAL := help
 
-.PHONY: check
-check: ## Run code quality tools.
-	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
+.PHONY: install
+install: ## Create the virtual environment with all dependency groups (writes uv.lock if missing)
+	@uv sync
+
+.PHONY: lint
+lint: ## Lock consistency, ruff, and mypy
 	@uv lock --locked
-	@echo "🚀 Linting code: Running pre-commit"
-	@uv run pre-commit run -a
-	@echo "🚀 Static type checking: Running mypy"
-	@uv run mypy --config-file pyproject.toml src
-	@echo "🚀 Checking for obsolete dependencies: Running deptry"
-	@uv run deptry .
+	@uv run ruff check .
+	@uv run ruff format --check .
+	@uv run mypy
 
 .PHONY: test
-test: ## Test the code with pytest
-	@echo "🚀 Testing code: Running pytest"
-	@uv run python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml --junitxml=tests/pytest.xml | tee tests/pytest-coverage.txt
+test: ## Tests with coverage
+	@uv run pytest --cov --cov-report=term-missing
+
+.PHONY: verify
+verify: lint test ## The one gate: run before reporting any change complete
 
 .PHONY: build
-build: clean-build ## Build wheel file
-	@echo "🚀 Creating wheel file"
-	@uvx --from build pyproject-build --installer uv
-
-.PHONY: clean-build
-clean-build: ## Clean build artifacts
-	@echo "🚀 Removing build artifacts"
-	@uv run python -c "import shutil; import os; shutil.rmtree('dist') if os.path.exists('dist') else None"
-
-.PHONY: publish
-publish: ## Publish a release to PyPI.
-	@echo "🚀 Publishing."
-	@uvx twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
-
-.PHONY: build-and-publish
-build-and-publish: build publish ## Build and publish.
-
+build: ## Build sdist and wheel into dist/
+	@uv build
+{% if docs_tool == 'mkdocs' %}
 .PHONY: docs-test
-docs-test: ## Test if documentation can be built without warnings or errors
-	@uv run mkdocs build -s
+docs-test: ## Build the docs strictly
+	@uv run mkdocs build --strict
 
 .PHONY: docs
-docs: ## Build and serve the documentation
+docs: ## Serve the docs locally
 	@uv run mkdocs serve
-
-.PHONY: install-uv
-install-uv: ## Install uv (pre-requisite for initialize)
-	@echo "🚀 Installing uv"
-	@command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh || true
-
-.PHONY: install-pipx
-install-pipx: ## Install pipx (pre-requisite for external tools)
-	@echo "🚀 Installing pipx"
-	@command -v pipx &> /dev/null || pip install --user pipx || true
-
-.PHONY: install-copier
-install-copier: install-pipx ## Install copier (pre-requisite for init-project)
-	@echo "🚀 Installing copier"
-	@command -v copier &> /dev/null || pipx install copier || true
-
-.PHONY: init-project
-init-project: initialize ## Initialize the project (Warning: do this only once!)
-	@echo "🚀 Initializing project from template"
-	@copier copy --trust {%- if code_template_source and code_template_source != 'None' %} --data 'code_template_source={{code_template_source}}'{% endif %} --answers-file .copier-config.yaml {%- if project_name.endswith('-template') %} --vcs-ref=HEAD{% endif %} gh:entelecheia/hyperfast-uv-template .
-
-{% if project_name == 'hyperfast-uv-template' -%}
-.PHONY: reinit-project
-reinit-project: install-copier ## Reinitialize the project (Warning: this may overwrite existing files!)
-	@echo "🚀 Reinitializing project from template"
-	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy "$${args[@]}" --answers-file .copier-config.yaml --trust --vcs-ref=HEAD . .'
-
-.PHONY: reinit-project-force
-reinit-project-force: install-copier ## Initialize the project ignoring existing files (Warning: this will overwrite existing files!)
-	@echo "🚀 Force reinitializing project from template"
-	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy "$${args[@]}" --answers-file .copier-config.yaml --trust --force --vcs-ref=HEAD . .'
-
-.PHONY: test-init-project
-test-init-project: install-copier ## Test initializing the project to a temporary directory
-	@echo "🚀 Testing project initialization"
-	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy "$${args[@]}" --answers-file .copier-config.yaml --trust --vcs-ref=HEAD . tmp'
-	@rm -rf tmp/.git
-
-.PHONY: test-init-project-force
-test-init-project-force: install-copier ## Test initializing the project to a temporary directory forcing overwrite
-	@echo "🚀 Testing project initialization with force"
-	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy "$${args[@]}" --answers-file .copier-config.yaml --trust --force --vcs-ref=HEAD . tmp'
-	@rm -rf tmp/.git
-{% else -%}
-.PHONY: reinit-project
-reinit-project: install-copier ## Reinitialize the project (Warning: this may overwrite existing files!)
-	@echo "🚀 Reinitializing project from template"
-	@bash -c 'args=(); while IFS= read -r file; do args+=("--skip" "$$file"); done < .copierignore; copier copy --trust "$${args[@]}" {%- if code_template_source and code_template_source != 'None' %} --data 'code_template_source={{code_template_source}}'{% endif %} --answers-file .copier-config.yaml {%- if project_name.endswith('-template') %} --vcs-ref=HEAD{% endif %} gh:entelecheia/hyperfast-uv-template .'
-{% endif -%}
-
+{% endif %}
+.PHONY: template-update
+template-update: ## Update the project from the template, then review the diff
+	@uvx copier@9.19.1 update -a .copier-config.yaml --trust
+{% if project_name == 'hyperfast-uv-template' %}
+.PHONY: render-test
+render-test: ## Render the template in each variant and run the generated gate
+	@bash scripts/render-test.sh
+{% endif %}
 .PHONY: help
 help:
-	@uv run python -c "import re; \
-	[[print(f'\033[36m{m[0]:<25}\033[0m {m[1]}') for m in re.findall(r'^([a-zA-Z_-]+):.*?## (.*)$$', open(makefile).read(), re.M)] for makefile in ('$(MAKEFILE_LIST)').strip().split()]"
-
-.DEFAULT_GOAL := help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'

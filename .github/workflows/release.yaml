@@ -1,56 +1,113 @@
 ---
 name: semantic-release
 
+# Release by fast-forwarding the `release` branch to a verified commit of the
+# main branch. No path filter: semantic-release does nothing without a
+# releasable commit.
 on:
-  workflow_call:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Republish a tag this workflow created (e.g. v1.2.3) after a failed upload. Empty runs a normal release"
+        required: false
+        default: ""
   push:
-    branches:
-      - release*
-    paths:
-      - "src/**"
-      - "pyproject.toml"
+    branches: [release]
+
+concurrency:
+  group: release-publication
+  cancel-in-progress: false
 
 jobs:
-  release:
+  # Reuse CI instead of rebuilding: a successful `lint & test` run for this
+  # exact commit skips validation, but only if it ran the full gate (a
+  # docs-only run skips `quality` and `test`).
+  verified:
+    if: inputs.tag == ''
     runs-on: ubuntu-latest
-    concurrency: release
-
+    timeout-minutes: 5
     permissions:
-      id-token: write
-      contents: write
-
+      actions: read
+    outputs:
+      found: ${{ steps.check.outputs.found }}
     steps:
-      # Note: we need to checkout the repository at the workflow sha in case during the workflow
-      # the branch was updated. To keep PSR working with the configured release branches,
-      # we force a checkout of the desired release branch but at the workflow sha HEAD.
-      - name: Setup | Checkout Repository at workflow sha
-        uses: actions/checkout@v5
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          found=false
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/lint_and_test.yaml/runs?head_sha=$GITHUB_SHA&status=success" --jq '.workflow_runs[].id' || true)
+          for id in $runs; do
+            full=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs" --jq '[.jobs[] | select(.name == "quality" and .conclusion == "success")] | length' || echo 0)
+            if [ "$full" != "0" ]; then found=true; break; fi
+          done
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+          echo "full successful 'lint & test' run for $GITHUB_SHA: $found" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  validate:
+    needs: verified
+    # A tag republish skips `verified` and always validates the tag itself.
+    if: always() && needs.verified.outputs.found != 'true'
+    uses: ./.github/workflows/lint_and_test.yaml
+    with:
+      ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || '' }}
+    permissions:
+      contents: read
+      pull-requests: read
+
+  release:
+    needs: [verified, validate]
+    if: always() && (needs.verified.outputs.found == 'true' || needs.validate.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      id-token: write # PyPI trusted publishing
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.sha }}
-
-      - name: Setup | Force correct release branch on workflow sha
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.sha }}
+      - name: Refuse tags this workflow did not create
+        if: inputs.tag != ''
+        env:
+          TAG: ${{ inputs.tag }}
         run: |
-          git checkout -B ${{ github.ref_name }} ${{ github.sha }}
-
-      - name: Action | Semantic Version Release
+          subject=$(git log -1 --format=%s)
+          if [ "$subject" != ":rocket: ${TAG#v}" ]; then
+            echo "::error::$TAG does not point at a semantic-release commit (subject: $subject)"
+            exit 1
+          fi
+      - name: Pin the release branch to the workflow sha
+        if: inputs.tag == ''
+        env:
+          RELEASE_BRANCH: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: git checkout -B "$RELEASE_BRANCH" "$RELEASE_SHA"
+      - name: Semantic version release
+        if: inputs.tag == ''
         id: release
-        # Adjust tag with desired version if applicable.
-        uses: python-semantic-release/python-semantic-release@v10.5.3
+        uses: python-semantic-release/python-semantic-release@b700dbeb1f431a0fcc30a79f3f0869407fe07278 # v10.7.0
         with:
           build: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
           git_committer_name: "github-actions"
           git_committer_email: "actions@users.noreply.github.com"
-
-      - name: Publish | Upload package to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        if: steps.release.outputs.released == 'true'
-
-      - name: Publish | Upload to GitHub Release Assets
-        uses: python-semantic-release/publish-action@v10.5.3
-        if: steps.release.outputs.released == 'true'
+      - name: Set up uv for the tag being republished
+        if: inputs.tag != ''
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.2"
+      - if: inputs.tag != ''
+        run: uv build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        if: steps.release.outputs.released == 'true' || inputs.tag != ''
+        with:
+          skip-existing: true # a retry may find some files already uploaded
+      - name: Upload GitHub release assets
+        uses: python-semantic-release/publish-action@99d4062dd393b5a7a62c5fe9ed78fb364b5674f2 # v10.7.0
+        if: steps.release.outputs.released == 'true' || inputs.tag != ''
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.release.outputs.tag }}
+          tag: ${{ inputs.tag || steps.release.outputs.tag }}
