@@ -4,34 +4,48 @@
 [![version-image]][release-url]
 [![release-date-image]][release-url]
 [![license-image]][license-url]
-[![codecov][codecov-image]][codecov-url]
-
 
 <!-- Links: -->
-[codecov-image]: https://codecov.io/gh/entelecheia/hyperfast-uv-template/branch/main/graph/badge.svg?token=29NXUNQUBU
-[codecov-url]: https://codecov.io/gh/entelecheia/hyperfast-uv-template
 [pypi-image]: https://img.shields.io/pypi/v/hyperfast-uv-template
+[pypi-url]: https://pypi.org/project/hyperfast-uv-template
 [license-image]: https://img.shields.io/github/license/entelecheia/hyperfast-uv-template
 [license-url]: https://github.com/entelecheia/hyperfast-uv-template/blob/main/LICENSE
 [version-image]: https://img.shields.io/github/v/release/entelecheia/hyperfast-uv-template?sort=semver
 [release-date-image]: https://img.shields.io/github/release-date/entelecheia/hyperfast-uv-template
 [release-url]: https://github.com/entelecheia/hyperfast-uv-template/releases
-[jupyter-book-image]: https://jupyterbook.org/en/stable/_images/badge.svg
-
-[repo-url]: https://github.com/entelecheia/hyperfast-uv-template
-[pypi-url]: https://pypi.org/project/hyperfast-uv-template
-[docs-url]: https://hyperfast-uv.entelecheia.ai
 [changelog]: https://github.com/entelecheia/hyperfast-uv-template/blob/main/CHANGELOG.md
 [contributing guidelines]: https://github.com/entelecheia/hyperfast-uv-template/blob/main/CONTRIBUTING.md
 <!-- Links: -->
 
-Streamlining Python Project Development with a Comprehensive Toolset for Quality, Efficiency, and Maintainability
+A [Copier](https://copier.readthedocs.io/) template for Python packages managed with [uv](https://docs.astral.sh/uv/).
 
-- Documentation: [https://hyperfast-uv.entelecheia.ai][docs-url]
-- GitHub: [https://github.com/entelecheia/hyperfast-uv-template][repo-url]
-- PyPI: [https://pypi.org/project/hyperfast-uv-template][pypi-url]
+A generated project gets:
 
-The Hyperfast UV Template is a powerful and comprehensive solution designed to accelerate the development and maintenance of high-quality Python projects. By incorporating industry best practices and automating key aspects such as dependency management, releases, code formatting, testing, and documentation, this template streamlines the entire development process. It ensures code quality through continuous integration, coverage reporting, linting, and static type-checking while providing seamless support for Conventional Commits and Semantic Versioning. With the Hyperfast UV Template, developers can efficiently create and manage Python projects, focusing on their core functionality while enjoying a robust, well-organized, and maintainable codebase.
+- `pyproject.toml` with hatchling, dependency groups (`test`, `lint`, optional `docs`), and a committed `uv.lock`
+- one local gate, `make verify`: lock check, ruff check and format, mypy strict, pytest with coverage. It needs no `.git` and no secrets, so it also runs in a bare container
+- GitHub Actions pinned by commit SHA: a PR gate on Python 3.11-3.15 with a single `ci-ok` check, releases with python-semantic-release and PyPI trusted publishing, and an optional Material for MkDocs site
+- `AGENTS.md` and `REVIEW.md` for coding agents and reviewers
+
+## Usage
+
+Create a project (requires uv and git):
+
+```bash
+uvx copier@9.19.1 copy --trust gh:entelecheia/hyperfast-uv-template my-project
+cd my-project
+make install   # creates .venv and uv.lock; commit uv.lock
+make verify
+```
+
+Update an existing project to the latest template release:
+
+```bash
+make template-update   # uvx copier update -a .copier-config.yaml --trust
+```
+
+The answers file is `.copier-config.yaml`, so plain `copier update` needs `-a .copier-config.yaml`.
+
+To publish to PyPI, add a trusted publisher for the repository's `release.yaml` workflow on PyPI, then release by fast-forwarding the `release` branch to `main`.
 
 ## Changelog
 

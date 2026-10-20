@@ -2,7 +2,6 @@
 
 # top-most .editorconfig file
 root = true
-max_line_length = 120
 
 # Unix-style newlines with a newline ending every file
 [*]
@@ -13,7 +12,7 @@ trim_trailing_whitespace = true
 indent_style = space
 
 [*.py]
-profile = black
+max_line_length = 120
 
 [Makefile]
 indent_style = tab

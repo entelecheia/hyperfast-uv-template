@@ -34,16 +34,11 @@ theme:
 
 # Extensions
 markdown_extensions:
-  - markdown_include.include:
-      base_path: .
   - pymdownx.arithmatex:
       generic: true
   - admonition
   - pymdownx.caret
   - pymdownx.details
-  # - pymdownx.emoji:
-  #     emoji_generator: "!!python/name:materialx.emoji.to_svg"
-  #     emoji_index: "!!python/name:materialx.emoji.twemoji"
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -63,23 +58,14 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
-  - mkdocs-click
-  - codehilite
 
 # Plugins
 plugins:
   - search
-  - mkdocstrings:
-      handlers:
-        # See: https://mkdocstrings.github.io/python/usage/
-        python:
-          options:
-            docstring_style: google
 
 # Customization
 extra_javascript:
   - javascripts/mathjax.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 extra:
   analytics:
