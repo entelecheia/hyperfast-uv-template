@@ -20,7 +20,8 @@ concurrency:
 
 jobs:
   # Reuse CI instead of rebuilding: a successful `lint & test` run for this
-  # exact commit skips validation.
+  # exact commit skips validation, but only if it ran the full gate (a
+  # docs-only run skips `quality` and `test`).
   verified:
     if: inputs.tag == ''
     runs-on: ubuntu-latest
@@ -34,9 +35,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          n=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/lint_and_test.yaml/runs?head_sha=$GITHUB_SHA&status=success" --jq .total_count || echo 0)
-          echo "found=$([ "$n" != "0" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-          echo "successful 'lint & test' runs for $GITHUB_SHA: $n" | tee -a "$GITHUB_STEP_SUMMARY"
+          found=false
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/lint_and_test.yaml/runs?head_sha=$GITHUB_SHA&status=success" --jq '.workflow_runs[].id' || true)
+          for id in $runs; do
+            full=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs" --jq '[.jobs[] | select(.name == "quality" and .conclusion == "success")] | length' || echo 0)
+            if [ "$full" != "0" ]; then found=true; break; fi
+          done
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+          echo "full successful 'lint & test' run for $GITHUB_SHA: $found" | tee -a "$GITHUB_STEP_SUMMARY"
 
   validate:
     needs: verified
@@ -62,6 +68,16 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.sha }}
+      - name: Refuse tags this workflow did not create
+        if: inputs.tag != ''
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          subject=$(git log -1 --format=%s)
+          if [ "$subject" != ":rocket: ${TAG#v}" ]; then
+            echo "::error::$TAG does not point at a semantic-release commit (subject: $subject)"
+            exit 1
+          fi
       - name: Pin the release branch to the workflow sha
         if: inputs.tag == ''
         env:

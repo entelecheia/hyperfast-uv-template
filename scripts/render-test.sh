@@ -52,7 +52,9 @@ for wf in sorted((out / ".github/workflows").glob("*.yaml")):
             if ref and not re.fullmatch(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}", ref):
                 errors.append(f"{wf.name}: job {name} uses an action not pinned by SHA: {ref}")
     if "pull_request" in (doc.get(True) or doc.get("on") or {}):
-        if "cancel-in-progress" not in str(doc.get("concurrency", "")):
+        concurrency = doc.get("concurrency")
+        cancel = concurrency.get("cancel-in-progress") if isinstance(concurrency, dict) else None
+        if not (cancel is True or (isinstance(cancel, str) and "pull_request" in cancel)):
             errors.append(f"{wf.name}: pull_request workflow does not cancel superseded runs")
 print("\n".join(errors) or f"{out.name}: tree checks passed")
 sys.exit(1 if errors else 0)
@@ -74,6 +76,13 @@ out=$(render default)
 [ -L "$out/.github/workflows/lint_and_test.yaml" ] && fail "workflow rendered as a symlink"
 check_tree "$out"
 gate "$out"
+
+# Answers interpolated into _tasks must reject shell syntax.
+if "${copier[@]}" copy --quiet --trust --defaults "${vcs_ref[@]}" "${common[@]}" \
+  -d 'main_branch=main;touch pwned' "$root" "$work/inject" >/dev/null 2>&1; then
+  fail "main_branch with shell syntax was accepted"
+fi
+[ ! -e "$work/inject/pwned" ] || fail "a task executed an injected command"
 
 # 2. Documentation site.
 out=$(render mkdocs -d docs_tool=mkdocs)
